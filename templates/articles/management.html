@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Məqalələrin idarə edilməsi — Məqalə{% endblock %}
+{% block content %}
+<div class="management-wrap">
+  <a class="back-link" href="{% url 'home' %}">← Ana səhifə</a>
+  <div class="editor-heading"><span class="section-kicker">İDARƏETMƏ</span><h1>Bütün məqalələr</h1><p>İstifadəçilərin qaralamaları və dərc olunmuş məqalələri burada görünür.</p></div>
+  <form method="get" class="search management-search"><input type="search" name="q" value="{{ query }}" placeholder="Başlıq, mətn və ya müəllif axtar..."><button class="button button-dark button-small" type="submit">Axtar</button></form>
+  <div class="section-heading"><div><span class="section-kicker">ÜMUMİ SİYAHI</span><h2>{{ page_obj.paginator.count }} məqalə</h2></div><a class="button button-dark button-small" href="{% url 'article_create' %}">＋ Yeni məqalə</a></div>
+  <div class="user-table article-management-table">
+    <div class="user-table-head"><span>MƏQALƏ</span><span>MÜƏLLİF</span><span>STATUS</span><span>ƏMƏLİYYAT</span></div>
+    {% for article in page_obj %}
+      <div class="user-row">
+        <div class="managed-article"><a href="{{ article.get_absolute_url }}">{{ article.title }}</a><p>{{ article.body|truncatewords:24 }}</p><small>{% if article.category %}{{ article.category.name }} · {% endif %}{{ article.created_at|date:"j F Y, H:i" }}</small></div>
+        <span class="managed-author">{{ article.author.get_full_name|default:article.author.username }}</span>
+        <span class="status-pill {% if article.status == 'published' %}active{% else %}blocked{% endif %}">{{ article.get_status_display }}</span>
+        <div class="user-actions"><a class="table-action" href="{% url 'article_edit' article.slug %}">Redaktə et</a><form method="post" action="{% url 'article_delete' article.slug %}" onsubmit="return confirm('Bu məqalə silinsin?')">{% csrf_token %}<button class="table-action danger-text" type="submit">Sil</button></form></div>
+      </div>
+    {% empty %}<div class="empty-users">Axtarışa uyğun məqalə tapılmadı.</div>{% endfor %}
+  </div>
+  {% if page_obj.paginator.num_pages > 1 %}<nav class="pagination">{% if page_obj.has_previous %}<a href="?{% if query %}q={{ query|urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}">← Əvvəlki</a>{% endif %}<span>{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a href="?{% if query %}q={{ query|urlencode }}&{% endif %}page={{ page_obj.next_page_number }}">Növbəti →</a>{% endif %}</nav>{% endif %}
+</div>
+{% endblock %}
