@@ -13,7 +13,11 @@
         <div class="managed-article"><a href="{{ article.get_absolute_url }}">{{ article.title }}</a><p>{{ article.body|truncatewords:24 }}</p><small>{% if article.category %}{{ article.category.name }} · {% endif %}{{ article.created_at|date:"j F Y, H:i" }}</small></div>
         <span class="managed-author">{{ article.author.get_full_name|default:article.author.username }}</span>
         <span class="status-pill {% if article.status == 'published' %}active{% else %}blocked{% endif %}">{{ article.get_status_display }}</span>
-        <div class="user-actions"><a class="table-action" href="{% url 'article_edit' article.slug %}">Redaktə et</a><form method="post" action="{% url 'article_delete' article.slug %}" onsubmit="return confirm('Bu məqalə silinsin?')">{% csrf_token %}<button class="table-action danger-text" type="submit">Sil</button></form></div>
+        <div class="user-actions">
+          {% if article.status == 'pending' %}<form method="post" action="{% url 'approve_article' article.slug %}">{% csrf_token %}<button class="table-action" type="submit">Təsdiqlə və dərc et</button></form>{% endif %}
+          <a class="table-action" href="{% url 'article_edit' article.slug %}">Redaktə et</a>
+          <form method="post" action="{% url 'article_delete' article.slug %}" onsubmit="return confirm('Bu məqalə silinsin?')">{% csrf_token %}<button class="table-action danger-text" type="submit">Sil</button></form>
+        </div>
       </div>
     {% empty %}<div class="empty-users">Axtarışa uyğun məqalə tapılmadı.</div>{% endfor %}
   </div>

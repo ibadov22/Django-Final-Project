@@ -1,11 +1,11 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import Article, Category, Comment, User
+from .models import Article, ArticleReaction, Category, Comment, Favorite, User
 
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    fieldsets = UserAdmin.fieldsets + (("Sayt icazələri", {"fields": ("role",)}),)
+    fieldsets = UserAdmin.fieldsets + (("Sayt profili və icazələri", {"fields": ("role", "bio")}),)
     add_fieldsets = UserAdmin.add_fieldsets + (("Sayt icazələri", {"fields": ("role",)}),)
     list_display = ("username", "email", "role", "is_active", "is_staff")
     list_filter = ("role", "is_active", "is_staff")
@@ -30,3 +30,14 @@ class CategoryAdmin(admin.ModelAdmin):
 class CommentAdmin(admin.ModelAdmin):
     list_display = ("article", "author", "created_at")
     search_fields = ("body", "author__username", "article__title")
+
+
+@admin.register(ArticleReaction)
+class ArticleReactionAdmin(admin.ModelAdmin):
+    list_display = ("article", "user", "value")
+    list_filter = ("value",)
+
+
+@admin.register(Favorite)
+class FavoriteAdmin(admin.ModelAdmin):
+    list_display = ("article", "user", "created_at")

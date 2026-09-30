@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Müəlliflər — Məqalə{% endblock %}
+{% block content %}
+<div class="management-wrap">
+  <div class="editor-heading"><span class="section-kicker">MÜƏLLİFLƏR</span><h1>Yazarlarla tanış ol</h1><p>Məqalələrini paylaşan müəlliflər və onların profilləri.</p></div>
+  <div class="author-directory">
+    {% for author in authors %}
+      <a class="author-directory-card" href="{% url 'author_detail' author.username %}">
+        <span class="profile-avatar">{{ author.username|first|upper }}</span>
+        <span><strong>{{ author.get_full_name|default:author.username }}</strong><small>@{{ author.username }}</small></span>
+        <span class="author-article-count">{{ author.published_count }} məqalə</span>
+      </a>
+    {% empty %}<p class="subtle">Hələ dərc olunmuş məqaləsi olan müəllif yoxdur.</p>{% endfor %}
+  </div>
+</div>
+{% endblock %}

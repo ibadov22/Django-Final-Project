@@ -1,63 +1,32 @@
 {% extends "base.html" %}
-
 {% block title %}Qeydiyyat — Məqalə{% endblock %}
-
 {% block content %}
 <div class="auth-wrap">
-    <div class="auth-art">
-        <div class="auth-art-mark">m<span>.</span></div>
-        <p>Fikrini paylaş,<br>icmanı böyüt.</p>
-        <span>Oxu. Düşün. Paylaş.</span>
-        <div class="auth-orbit orbit-one"></div>
-        <div class="auth-orbit orbit-two"></div>
-    </div>
-    
-    <div class="auth-panel">
-        <span class="section-kicker">İCMAYA QOŞUL</span>
-        <h1>Hesab yarat</h1>
-        <p>Qeydiyyat pulsuzdur. Başlamaq üçün bir dəqiqə kifayətdir.</p>
-        
-        <form method="post" class="auth-form">
-            {% csrf_token %}
-            
-            {% if form.non_field_errors %}
-                <div class="form-errors">{{ form.non_field_errors }}</div>
-            {% endif %}
-            
-            {% for field in form %}
-                <div class="field">
-                    <label for="{{ field.id_for_label }}">
-                        {% if field.name == 'username' %}
-                            İstifadəçi adı
-                        {% elif field.name == 'password1' %}
-                            Şifrə
-                        {% elif field.name == 'password2' %}
-                            Şifrəni təkrar yaz
-                        {% else %}
-                            {{ field.label }}
-                        {% endif %}
-                    </label>
-                    
-                    {{ field }}
-                    
-                    {% if field.help_text %}
-                        <small class="help-text">{{ field.help_text|safe }}</small>
-                    {% endif %}
-                    
-                    {% for error in field.errors %}
-                        <span class="field-error">{{ error }}</span>
-                    {% endfor %}
-                </div>
-            {% endfor %}
-            
-            <button class="button button-dark full-button" type="submit">
-                Hesab yarat <span>→</span>
-            </button>
-        </form>
-        
-        <p class="auth-switch">
-            Artıq hesabın var? <a href="{% url 'login' %}">Daxil ol</a>
-        </p>
-    </div>
+  <div class="auth-art">
+    <div class="auth-art-mark">m<span>.</span></div>
+    <p>Fikrini paylaş,<br>icmanı böyüt.</p>
+    <span>Oxu. Düşün. Paylaş.</span>
+    <div class="auth-orbit orbit-one"></div>
+    <div class="auth-orbit orbit-two"></div>
+  </div>
+  <div class="auth-panel">
+    <span class="section-kicker">İCMAYA QOŞUL</span>
+    <h1>Hesab yarat</h1>
+    <p>Qeydiyyat pulsuzdur. Başlamaq üçün bir dəqiqə kifayətdir.</p>
+    <form method="post" class="auth-form">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+      {% for field in form %}
+        <div class="field">
+          <label for="{{ field.id_for_label }}">{% if field.name == 'username' %}İstifadəçi adı{% elif field.name == 'password1' %}Şifrə{% elif field.name == 'password2' %}Şifrəni təkrar yaz{% else %}{{ field.label }}{% endif %}</label>
+          {{ field }}
+          {% if field.help_text %}<small class="help-text">{{ field.help_text|safe }}</small>{% endif %}
+          {% for error in field.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+        </div>
+      {% endfor %}
+      <button class="button button-dark full-button" type="submit">Hesab yarat <span>→</span></button>
+    </form>
+    <p class="auth-switch">Artıq hesabın var? <a href="{% url 'login' %}">Daxil ol</a></p>
+  </div>
 </div>
 {% endblock %}

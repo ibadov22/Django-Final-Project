@@ -1,64 +1,33 @@
 {% extends "base.html" %}
-
 {% block title %}İstifadəçilər — Məqalə{% endblock %}
-
 {% block content %}
 <div class="management-wrap">
-    <a class="back-link" href="{% url 'home' %}">← Ana səhifə</a>
-    
-    <div class="editor-heading">
-        <span class="section-kicker">İDARƏETMƏ</span>
-        <h1>İstifadəçilər</h1>
-        <p>Hesabların rollarını və giriş icazələrini idarə et.</p>
-    </div>
-    
-    <div class="user-table">
-        <div class="user-table-head">
-            <span>İSTİFADƏÇİ</span>
-            <span>ROL</span>
-            <span>STATUS</span>
-            <span>ƏMƏLİYYAT</span>
+  <a class="back-link" href="{% url 'home' %}">← Ana səhifə</a>
+  <div class="editor-heading">
+    <span class="section-kicker">İDARƏETMƏ</span>
+    <h1>İstifadəçilər</h1>
+    <p>Hesabların rollarını və giriş icazələrini idarə et.</p>
+  </div>
+  <div class="user-table">
+    <div class="user-table-head"><span>İSTİFADƏÇİ</span><span>ROL</span><span>STATUS</span><span>ƏMƏLİYYAT</span></div>
+    {% for item in users %}
+      <div class="user-row">
+        <div class="user-cell">
+          <span class="author-avatar">{{ item.username|first|upper }}</span>
+          <span><strong>{{ item.get_full_name|default:item.username }}</strong><small>{{ item.email|default:item.username }}</small></span>
         </div>
-        
-        {% for item in users %}
-            <div class="user-row">
-                <div class="user-cell">
-                    <span class="author-avatar">{{ item.username|first|upper }}</span>
-                    <span>
-                        <strong>{{ item.get_full_name|default:item.username }}</strong>
-                        <small>{{ item.email|default:item.username }}</small>
-                    </span>
-                </div>
-                
-                <span class="role-badge">{{ item.get_role_display }}</span>
-                
-                <span class="status-pill {% if item.is_active %}active{% else %}blocked{% endif %}">
-                    {% if item.is_active %}Aktiv{% else %}Bloklanıb{% endif %}
-                </span>
-                
-                <div class="user-actions">
-                    {% if user.is_superuser %}
-                        <form method="post" action="{% url 'toggle_admin_role' item.id %}">
-                            {% csrf_token %}
-                            <button class="table-action" type="submit">
-                                {% if item.role == 'admin' %}Admini ləğv et{% else %}Admin təyin et{% endif %}
-                            </button>
-                        </form>
-                    {% endif %}
-                    
-                    {% if item != user and not item.is_superuser and user.is_superuser or item != user and item.role == 'user' %}
-                        <form method="post" action="{% url 'toggle_user_block' item.id %}">
-                            {% csrf_token %}
-                            <button class="table-action {% if item.is_active %}danger-text{% endif %}" type="submit">
-                                {% if item.is_active %}Blokla{% else %}Blokdan çıxar{% endif %}
-                            </button>
-                        </form>
-                    {% endif %}
-                </div>
-            </div>
-        {% empty %}
-            <div class="empty-users">İstifadəçi yoxdur.</div>
-        {% endfor %}
-    </div>
+        <span class="role-badge">{{ item.get_role_display }}</span>
+        <span class="status-pill {% if item.is_active %}active{% else %}blocked{% endif %}">{% if item.is_active %}Aktiv{% else %}Bloklanıb{% endif %}</span>
+        <div class="user-actions">
+          {% if user.is_superuser and not item.is_superuser %}
+            <form method="post" action="{% url 'toggle_admin_role' item.id %}">{% csrf_token %}<button class="table-action" type="submit">{% if item.role == 'admin' %}Admini ləğv et{% else %}Admin təyin et{% endif %}</button></form>
+          {% endif %}
+          {% if item != user and not item.is_superuser and user.is_superuser or item != user and item.role == 'user' %}
+            <form method="post" action="{% url 'toggle_user_block' item.id %}">{% csrf_token %}<button class="table-action {% if item.is_active %}danger-text{% endif %}" type="submit">{% if item.is_active %}Blokla{% else %}Blokdan çıxar{% endif %}</button></form>
+          {% endif %}
+        </div>
+      </div>
+    {% empty %}<div class="empty-users">İstifadəçi yoxdur.</div>{% endfor %}
+  </div>
 </div>
 {% endblock %}

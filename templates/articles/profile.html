@@ -1,58 +1,34 @@
 {% extends "base.html" %}
-
 {% block title %}Profil — Məqalə{% endblock %}
-
 {% block content %}
 <div class="profile-layout">
-    <aside class="profile-card">
-        <div class="profile-avatar">{{ user.username|first|upper }}</div>
-        <h1>{{ user.get_full_name|default:user.username }}</h1>
-        <p>@{{ user.username }}</p>
-        <span class="role-badge">{{ user.get_role_display }}</span>
-        <a class="admin-link" href="{% url 'home' %}">← Ana səhifə</a>
-    </aside>
-    
-    <section class="profile-content">
-        <div class="section-heading">
-            <div>
-                <span class="section-kicker">HESAB</span>
-                <h2>Profil məlumatları</h2>
-            </div>
-        </div>
-        
-        <form method="post" class="profile-form">
-            {% csrf_token %}
-            
-            {% for field in form %}
-                <div class="field">
-                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                    {{ field }}
-                    {{ field.errors }}
-                </div>
-            {% endfor %}
-            
-            <button class="button button-dark">Məlumatları yenilə</button>
-        </form>
-        
-        <div class="section-heading profile-articles-heading">
-            <div>
-                <span class="section-kicker">MÜƏLLİF</span>
-                <h2>Məqalələrim</h2>
-            </div>
-            <a class="button button-outline button-small" href="{% url 'article_create' %}">＋ Yeni məqalə</a>
-        </div>
-        
-        {% for article in own_articles %}
-            <div class="profile-article">
-                <div>
-                    <a href="{{ article.get_absolute_url }}">{{ article.title }}</a>
-                    <span>{{ article.get_status_display }} · {{ article.created_at|date:"j F Y" }}</span>
-                </div>
-                <a href="{% url 'article_edit' article.slug %}" class="edit-mini">Redaktə et →</a>
-            </div>
-        {% empty %}
-            <p class="subtle">Hələ məqalə yazmamısan.</p>
-        {% endfor %}
-    </section>
+  <aside class="profile-card">
+    <div class="profile-avatar">{{ user.username|first|upper }}</div>
+    <h1>{{ user.get_full_name|default:user.username }}</h1>
+    <p>@{{ user.username }}</p>
+    <span class="role-badge">{{ user.get_role_display }}</span>
+    <a class="admin-link" href="{% url 'author_detail' user.username %}">İctimai müəllif profilim →</a>
+    <a class="admin-link" href="{% url 'home' %}">← Ana səhifə</a>
+  </aside>
+  <section class="profile-content">
+    <div class="section-heading"><div><span class="section-kicker">HESAB</span><h2>Profil məlumatları</h2></div></div>
+    <form method="post" class="profile-form">
+      {% csrf_token %}
+      {% for field in form %}
+        <div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>
+      {% endfor %}
+      <button class="button button-dark" type="submit">Məlumatları yenilə</button>
+    </form>
+    <div class="section-heading profile-articles-heading">
+      <div><span class="section-kicker">MÜƏLLİF</span><h2>Məqalələrim</h2></div>
+      <a class="button button-outline button-small" href="{% url 'article_create' %}">＋ Yeni məqalə</a>
+    </div>
+    {% for article in own_articles %}
+      <div class="profile-article">
+        <div><a href="{{ article.get_absolute_url }}">{{ article.title }}</a><span>{{ article.get_status_display }} · {{ article.created_at|date:"j F Y" }}</span></div>
+        <a href="{% url 'article_edit' article.slug %}" class="edit-mini">Redaktə et →</a>
+      </div>
+    {% empty %}<p class="subtle">Hələ məqalə yazmamısan.</p>{% endfor %}
+  </section>
 </div>
 {% endblock %}

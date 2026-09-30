@@ -1,67 +1,28 @@
 {% extends "base.html" %}
-
 {% block title %}{{ heading }} — Məqalə{% endblock %}
-
 {% block content %}
 <div class="editor-wrap">
-    <a class="back-link" href="{% if article %}{{ article.get_absolute_url }}{% else %}{% url 'home' %}{% endif %}">← Geri</a>
-    
-    <div class="editor-heading">
-        <span class="section-kicker">SÖZ SƏNİNDİR</span>
-        <h1>{{ heading }}</h1>
-        <p>Fikrini aydın ifadə et. Qaralama olaraq saxlaya və sonra dərc edə bilərsən.</p>
+  <a class="back-link" href="{% if article %}{{ article.get_absolute_url }}{% else %}{% url 'home' %}{% endif %}">← Geri</a>
+  <div class="editor-heading">
+    <span class="section-kicker">SÖZ SƏNİNDİR</span>
+    <h1>{{ heading }}</h1>
+    <p>Qaralama saxla və ya məqaləni admin təsdiqinə göndər.</p>
+  </div>
+  <form method="post" enctype="multipart/form-data" class="editor-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="field"><label for="{{ form.title.id_for_label }}">Başlıq <span>· 5–180 simvol</span></label>{{ form.title }}{{ form.title.errors }}</div>
+    <div class="field"><label for="{{ form.summary.id_for_label }}">Qısa təsvir <span>· İstəyə bağlı</span></label>{{ form.summary }}{{ form.summary.errors }}</div>
+    <div class="field-row">
+      <div class="field"><label for="{{ form.category.id_for_label }}">Kateqoriya <span>· Məcburi</span></label>{{ form.category }}{{ form.category.errors }}</div>
+      <div class="field"><label for="{{ form.tags.id_for_label }}">Teqlər</label>{{ form.tags }}{{ form.tags.errors }}</div>
     </div>
-    
-    <form method="post" class="editor-form">
-        {% csrf_token %}
-        
-        {% if form.non_field_errors %}
-            <div class="form-errors">{{ form.non_field_errors }}</div>
-        {% endif %}
-        
-        <div class="field">
-            <label for="{{ form.title.id_for_label }}">Başlıq <span>· 5–180 simvol</span></label>
-            {{ form.title }}
-            {{ form.title.errors }}
-        </div>
-        
-        <div class="field">
-            <label for="{{ form.summary.id_for_label }}">Qısa təsvir <span>· İstəyə bağlı</span></label>
-            {{ form.summary }}
-            {{ form.summary.errors }}
-        </div>
-        
-        <div class="field-row">
-            <div class="field">
-                <label for="{{ form.category.id_for_label }}">Kateqoriya</label>
-                {{ form.category }}
-                {{ form.category.errors }}
-            </div>
-            
-            <div class="field">
-                <label for="{{ form.tags.id_for_label }}">Teqlər</label>
-                {{ form.tags }}
-                {{ form.tags.errors }}
-            </div>
-        </div>
-        
-        <div class="field">
-            <label for="{{ form.body.id_for_label }}">Məqalə mətni <span>· Ən azı 30 simvol</span></label>
-            {{ form.body }}
-            {{ form.body.errors }}
-        </div>
-        
-        <div class="editor-footer">
-            <div class="field status-field">
-                <label for="{{ form.status.id_for_label }}">Dərc statusu</label>
-                {{ form.status }}
-            </div>
-            
-            <div class="editor-buttons">
-                <a href="{% if article %}{{ article.get_absolute_url }}{% else %}{% url 'home' %}{% endif %}" class="button button-outline">Ləğv et</a>
-                <button type="submit" class="button button-dark">{{ button }} <span>→</span></button>
-            </div>
-        </div>
-    </form>
+    <div class="field"><label for="{{ form.image.id_for_label }}">Məqalə şəkli <span>· İstəyə bağlı</span></label>{{ form.image }}{{ form.image.errors }}{% if article.image %}<img class="form-image-preview" src="{{ article.image.url }}" alt="Mövcud məqalə şəkli">{% endif %}</div>
+    <div class="field"><label for="{{ form.body.id_for_label }}">Məqalə mətni <span>· Ən azı 30 simvol</span></label>{{ form.body }}{{ form.body.errors }}</div>
+    <div class="editor-footer">
+      <div class="field status-field"><label for="{{ form.status.id_for_label }}">Yadda saxlama</label>{{ form.status }}{{ form.status.errors }}</div>
+      <div class="editor-buttons"><a href="{% if article %}{{ article.get_absolute_url }}{% else %}{% url 'home' %}{% endif %}" class="button button-outline">Ləğv et</a><button type="submit" class="button button-dark">{{ button }} <span>→</span></button></div>
+    </div>
+  </form>
 </div>
 {% endblock %}

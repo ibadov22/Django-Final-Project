@@ -2,12 +2,12 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.paginator import Paginator
-from django.db.models import F, Q
+from django.db.models import Count, F, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from .forms import ArticleForm, CommentForm, ProfileForm, SignUpForm
-from .models import Article, Category, Comment, User
+from .models import Article, ArticleReaction, Category, Comment, Favorite, User
 
 
 def visible_articles(user):
@@ -15,7 +15,6 @@ def visible_articles(user):
     if user.is_authenticated:
         if user.is_editor:
             return articles
-        # Keep the author's drafts in their feed while hiding them from everyone else.
         return articles.filter(
             Q(status=Article.Status.PUBLISHED) | Q(author_id=user.pk)
         )
@@ -23,13 +22,18 @@ def visible_articles(user):
 
 
 def home(request):
-    articles = visible_articles(request.user)
+    articles = visible_articles(request.user).annotate(
+        like_total=Count("reactions", filter=Q(reactions__value=ArticleReaction.Value.LIKE)),
+        dislike_total=Count("reactions", filter=Q(reactions__value=ArticleReaction.Value.DISLIKE)),
+    )
     query = request.GET.get("q", "").strip()
     order = request.GET.get("s", "new")
     if query:
         articles = articles.filter(Q(title__icontains=query) | Q(summary__icontains=query) | Q(body__icontains=query) | Q(tags__icontains=query) | Q(author__username__icontains=query))
     if order == "popular":
-        articles = articles.order_by("-views", "-created_at")
+        articles = articles.order_by((F("like_total") - F("dislike_total")).desc(), "-views", "-created_at")
+    else:
+        articles = articles.order_by("-created_at")
     paginator = Paginator(articles, 8)
     page_obj = paginator.get_page(request.GET.get("page"))
     return render(request, "articles/home_feed.html", {"page_obj": page_obj, "query": query, "order": order})
@@ -40,6 +44,26 @@ def category_detail(request, slug):
     articles = visible_articles(request.user).filter(category=category)
     page_obj = Paginator(articles, 8).get_page(request.GET.get("page"))
     return render(request, "articles/home_feed.html", {"page_obj": page_obj, "category": category, "query": "", "order": "new"})
+
+
+def authors(request):
+    authors_list = User.objects.filter(articles__status=Article.Status.PUBLISHED, is_active=True).annotate(published_count=Count("articles", filter=Q(articles__status=Article.Status.PUBLISHED))).distinct().order_by("username")
+    return render(request, "articles/authors.html", {"authors": authors_list})
+
+
+def author_detail(request, username):
+    author = get_object_or_404(User, username=username, is_active=True)
+    articles = Article.objects.filter(author=author, status=Article.Status.PUBLISHED).select_related("category")
+    if request.user.is_authenticated and (request.user.is_editor or request.user == author):
+        articles = Article.objects.filter(author=author).select_related("category")
+    page_obj = Paginator(articles, 8).get_page(request.GET.get("page"))
+    return render(request, "articles/author_detail.html", {"author_profile": author, "page_obj": page_obj})
+
+
+@login_required
+def favorites(request):
+    articles = Article.objects.filter(favorites__user=request.user, status=Article.Status.PUBLISHED).select_related("author", "category")
+    return render(request, "articles/home_feed.html", {"page_obj": Paginator(articles, 8).get_page(request.GET.get("page")), "query": "", "order": "new", "feed_title": "Seçilmiş məqalələr"})
 
 
 def article_detail(request, slug):
@@ -62,23 +86,32 @@ def article_detail(request, slug):
             comment.save()
             messages.success(request, "Şərhiniz əlavə olundu.")
             return redirect(f"{article.get_absolute_url()}#comments")
-    return render(request, "articles/detail.html", {"article": article, "form": form, "comments": article.comments.select_related("author")})
+    current_reaction = None
+    is_favorite = False
+    if request.user.is_authenticated:
+        current_reaction = ArticleReaction.objects.filter(article=article, user=request.user).values_list("value", flat=True).first()
+        is_favorite = Favorite.objects.filter(article=article, user=request.user).exists()
+    return render(request, "articles/detail.html", {
+        "article": article,
+        "form": form,
+        "comments": article.comments.select_related("author"),
+        "current_reaction": current_reaction,
+        "is_favorite": is_favorite,
+    })
 
 
 @login_required
 def article_create(request):
-    form = ArticleForm(request.POST or None)
+    form = ArticleForm(request.POST or None, request.FILES or None, user=request.user)
     if request.method == "POST":
         if form.is_valid():
             article = form.save(commit=False)
             article.author = request.user
+            if not request.user.is_editor and article.status != Article.Status.DRAFT:
+                article.status = Article.Status.PENDING
             article.save()
-            if article.status == Article.Status.DRAFT:
-                messages.success(request, "Məqalə qaralama kimi yadda saxlanıldı.")
-            else:
-                messages.success(request, "Məqalə uğurla dərc edildi.")
-            # Return to the feed so the author can immediately see the new item there.
-            return redirect("home")
+            messages.success(request, "Məqalə qaralama kimi yadda saxlanıldı." if article.status == Article.Status.DRAFT else "Məqalə admin təsdiqinə göndərildi." if article.status == Article.Status.PENDING else "Məqalə dərc edildi.")
+            return redirect(article.get_absolute_url())
         errors = []
         for field_name, field_errors in form.errors.items():
             label = form.fields[field_name].label if field_name in form.fields else "Forma"
@@ -92,14 +125,21 @@ def article_edit(request, slug):
     article = get_object_or_404(Article, slug=slug)
     if not (request.user.is_editor or request.user == article.author):
         raise Http404
-    form = ArticleForm(request.POST or None, instance=article)
+    form = ArticleForm(request.POST or None, request.FILES or None, instance=article, user=request.user)
     if request.method == "POST" and form.is_valid():
-        form.save()
-        if article.status == Article.Status.DRAFT:
+        updated = form.save(commit=False)
+        if request.user != article.author and not request.user.is_editor:
+            raise Http404
+        if not request.user.is_editor:
+            updated.status = Article.Status.PENDING if updated.status != Article.Status.DRAFT else Article.Status.DRAFT
+        updated.save()
+        if updated.status == Article.Status.DRAFT:
             messages.success(request, "Dəyişikliklər yadda saxlanıldı. Məqalə qaralama olaraq qaldı.")
+        elif updated.status == Article.Status.PENDING:
+            messages.success(request, "Dəyişikliklər admin təsdiqinə göndərildi.")
         else:
             messages.success(request, "Məqalə dərc edildi və dəyişikliklər yadda saxlanıldı.")
-        return redirect(article.get_absolute_url())
+        return redirect(updated.get_absolute_url())
     return render(request, "articles/form.html", {"form": form, "heading": "Məqaləni redaktə et", "button": "Dəyişiklikləri yadda saxla", "article": article})
 
 
@@ -157,6 +197,45 @@ def article_management(request):
         "articles/management.html",
         {"page_obj": page_obj, "query": query},
     )
+
+
+@login_required
+@require_POST
+def react_to_article(request, slug, value):
+    if value not in ArticleReaction.Value.values:
+        raise Http404
+    article = get_object_or_404(Article, slug=slug, status=Article.Status.PUBLISHED)
+    reaction, created = ArticleReaction.objects.get_or_create(article=article, user=request.user, defaults={"value": value})
+    if not created:
+        if reaction.value == value:
+            reaction.delete()
+        else:
+            reaction.value = value
+            reaction.save(update_fields=["value"])
+    return redirect(article.get_absolute_url())
+
+
+@login_required
+@require_POST
+def toggle_favorite(request, slug):
+    article = get_object_or_404(Article, slug=slug, status=Article.Status.PUBLISHED)
+    favorite, created = Favorite.objects.get_or_create(article=article, user=request.user)
+    if not created:
+        favorite.delete()
+    return redirect(article.get_absolute_url())
+
+
+@user_passes_test(is_admin)
+@require_POST
+def approve_article(request, slug):
+    article = get_object_or_404(Article, slug=slug)
+    if article.status != Article.Status.PENDING:
+        messages.info(request, "Bu məqalə təsdiq gözləmir.")
+    else:
+        article.status = Article.Status.PUBLISHED
+        article.save(update_fields=["status", "updated_at"])
+        messages.success(request, "Məqalə təsdiqlənərək dərc edildi.")
+    return redirect("article_management")
 
 
 @user_passes_test(is_admin)

@@ -14,6 +14,7 @@ class User(AbstractUser):
         USER = "user", "İstifadəçi"
 
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.USER, verbose_name="Rol")
+    bio = models.TextField(max_length=1000, blank=True, verbose_name="Haqqımda")
 
     class Meta:
         constraints = [
@@ -60,13 +61,15 @@ class Category(models.Model):
 class Article(models.Model):
     class Status(models.TextChoices):
         DRAFT = "draft", "Qaralama"
+        PENDING = "pending", "Təsdiq gözləyir"
         PUBLISHED = "published", "Dərc edilib"
 
     title = models.CharField(max_length=180, validators=[MinLengthValidator(5)], verbose_name="Başlıq")
     slug = models.SlugField(max_length=200, unique=True, blank=True)
     summary = models.CharField(max_length=280, blank=True, verbose_name="Qısa təsvir")
     body = models.TextField(validators=[MinLengthValidator(30)], verbose_name="Məqalə mətni")
-    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="articles", verbose_name="Kateqoriya")
+    category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="articles", verbose_name="Kateqoriya")
+    image = models.FileField(upload_to="article_images/%Y/%m/", blank=True, verbose_name="Məqalə şəkli")
     tags = models.CharField(max_length=200, blank=True, help_text="Teqləri vergüllə ayırın", verbose_name="Teqlər")
     author = models.ForeignKey("articles.User", on_delete=models.CASCADE, related_name="articles", verbose_name="Müəllif")
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.DRAFT, db_index=True, verbose_name="Status")
@@ -94,6 +97,18 @@ class Article(models.Model):
         return [tag.strip() for tag in self.tags.split(",") if tag.strip()]
 
     @property
+    def rating(self):
+        return self.reactions.filter(value=ArticleReaction.Value.LIKE).count() - self.reactions.filter(value=ArticleReaction.Value.DISLIKE).count()
+
+    @property
+    def like_count(self):
+        return self.reactions.filter(value=ArticleReaction.Value.LIKE).count()
+
+    @property
+    def dislike_count(self):
+        return self.reactions.filter(value=ArticleReaction.Value.DISLIKE).count()
+
+    @property
     def reading_minutes(self):
         return max(1, round(len(re.findall(r"\w+", self.body)) / 200))
 
@@ -117,3 +132,25 @@ class Comment(models.Model):
 
     def __str__(self):
         return f"{self.author}: {self.body[:40]}"
+
+
+class ArticleReaction(models.Model):
+    class Value(models.TextChoices):
+        LIKE = "like", "Bəyən"
+        DISLIKE = "dislike", "Bəyənmə"
+
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name="reactions")
+    user = models.ForeignKey("articles.User", on_delete=models.CASCADE, related_name="article_reactions")
+    value = models.CharField(max_length=10, choices=Value.choices)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=("article", "user"), name="articles_unique_user_reaction")]
+
+
+class Favorite(models.Model):
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name="favorites")
+    user = models.ForeignKey("articles.User", on_delete=models.CASCADE, related_name="favorites")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=("article", "user"), name="articles_unique_user_favorite")]

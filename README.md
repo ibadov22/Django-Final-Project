@@ -37,12 +37,14 @@ Habr üslubunda məqalə və xəbər platforması. Django 5.2 və Python 3.10+ i
 ## Rollar və icazələr
 
 - **Qonaq:** dərc edilmiş məqalələri və şərhləri oxuya, axtarış edə bilər.
-- **İstifadəçi:** qeydiyyatdan sonra məqalə yaradır; öz məqaləsini redaktə/silə bilər. Məqalələr əvvəlcə qaralama kimi saxlanılır, müəllif öz qaralamasını görə bilir.
-- **Admin:** məqalələri idarə edir və istifadəçiləri bloklayıb blokdan çıxarır.
+- **İstifadəçi:** qeydiyyatdan sonra məqalə yaradır; yalnız öz məqaləsini redaktə/silə bilər. Qaralamanı saxlayır və ya admin təsdiqinə göndərir. Dərc olunmuş məqalənin redaktəsi yenidən təsdiq tələb edir.
+- **Admin:** məqalə yaradır, redaktə edir, silir və istifadəçiləri bloklayıb blokdan çıxarır. Təsdiq gözləyən məqaləni dərc edə bilər.
 - **Super Admin:** Admin imkanlarına əlavə olaraq istifadəçiyə Admin rolunu verir və ya geri alır.
 
 Super Admin hesabı `createsuperuser` ilə yaradılır; yeni qeydiyyatçılar heç vaxt imtiyazlı rol seçə bilmirlər. Bloklanan istifadəçi sistemə daxil ola bilmir.
 
 ## Məqalə imkanları
 
-Məqalədə başlıq, qısa təsvir, mətn, kateqoriya, teqlər, status (qaralama/dərc edilib), yaradılma və yenilənmə vaxtı saxlanılır. Ana səhifədə axtarış, kateqoriya filtri, sıralama və səhifələmə var. Dərc edilmiş məqalələrə şərh yazmaq üçün giriş tələb olunur.
+Məqalədə başlıq, qısa təsvir, əsas mətn, məcburi kateqoriya, teqlər, şəkil, təsdiq statusu və vaxtlar saxlanılır. Dərc edilmiş məqalələr bəyənilə, bəyənilməyə və seçilmişlərə əlavə edilə bilər. Reytinq bəyənmə və bəyənməmə fərqidir; populyar sıralama reytinqə görə aparılır. Müəllif bio məlumatı və ictimai profili var. Şərh, səsvermə və seçilmişlər üçün hesaba giriş tələb olunur.
+
+Kateqoriyalar: Proqramlaşdırma, Sistem inzibatçılığı, Dizayn, Menecment, Marketinq və Elmi-populyar.
